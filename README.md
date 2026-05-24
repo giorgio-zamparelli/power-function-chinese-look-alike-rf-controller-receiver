@@ -2,9 +2,9 @@
 
 Reverse-engineering and computer control of a **Chinese clone of the LEGO® Power Functions**
 remote (clone of `8879`) + receiver (clone of `8884`) that — unlike the genuine IR LEGO PF —
-communicates over **2.4 GHz RF**. The end result is a web app that drives the cloned receiver's
-motor (forward / reverse / brake, with incremental speed) from a laptop, using an **Arduino Uno +
-NRF24L01+PA+LNA** as the radio.
+communicates over **2.4 GHz RF**. The end result is a web app that drives **both of the cloned
+receiver's outputs** (forward / reverse / brake, with incremental speed, on **any of its 4
+channels**) from a laptop, using an **Arduino Uno + NRF24L01+PA+LNA** as the radio.
 
 > ⚠️ Not affiliated with or endorsed by the LEGO Group. "LEGO" and "Power Functions" are
 > trademarks of the LEGO Group. This is an independent interoperability / reverse-engineering
@@ -14,7 +14,9 @@ NRF24L01+PA+LNA** as the radio.
 
 - Sniffs the clone's 2.4 GHz traffic, descrambles it, and decodes the protocol.
 - Emulates the controller so a computer can drive the receiver — no original remote needed.
-- Serves a small web control panel (Forward / Reverse / Stop + incremental speed).
+- Serves a web control panel: **both outputs (A + B)** forward / reverse / brake with incremental
+  speed, a **1–4 channel selector**, a **live connection indicator with auto-reconnect**, plus a
+  raw 0–255 payload grid (`/grid`) for further poking.
 
 ## The decoded protocol
 
@@ -23,7 +25,7 @@ The clone uses a **scrambled XN297** link (the NRF24L01+ can emulate XN297 in so
 | Property | Value |
 |---|---|
 | Modulation | XN297, scrambled, **1 Mbps** |
-| RF channels (channel-switch position 1) | **5 and 68** |
+| RF channels | **5 & 68** on channel 1 (all 4 switch positions mapped — see [`channels.md`](docs/channels.md)) |
 | Address (fixed, 4 bytes) | logical `55 05 44 34` (over-air after preamble: `D7 F5 4E BF`) |
 | Packet | `[4-byte addr][1-byte payload][2-byte CRC]` |
 | CRC | 16-bit, poly `0x1021`, init `0xB5D2`, scrambled |
