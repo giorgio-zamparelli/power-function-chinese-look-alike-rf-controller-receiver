@@ -86,10 +86,22 @@ uint8_t XN297_WritePayload(uint8_t*msg,uint8_t len){
 }
 
 // ---- protocol params (reverse-engineered) ----
-const uint8_t ADDR[4] = {0x55,0x05,0x44,0x34};
-const uint8_t CHANS[] = {5, 68};
+uint8_t ADDR[4] = {0x55,0x05,0x44,0x34};   // logical addr; bytes 1,2 = the two RF channels
+uint8_t CHANS[2] = {5, 68};                 // RF channels for the current switch position
+uint8_t curChannel = 1;
 uint8_t payload = 0;
 bool txOn = true;
+
+// Channel switch 1-4: first RF = 3+2*n, second = first+63, address embeds both channel numbers.
+void setChannel(uint8_t n){
+  if(n<1 || n>4) return;
+  uint8_t f = 3 + 2*n;          // 1->5, 2->7, 3->9, 4->11
+  ADDR[1]=f;  ADDR[2]=f+63;     // e.g. ch1: 0x05/0x44, ch2: 0x07/0x46
+  CHANS[0]=f; CHANS[1]=f+63;    // RF channels, e.g. 5&68, 7&70 ...
+  curChannel=n;
+  Serial.print(F("channel=")); Serial.print(n);
+  Serial.print(F(" rf=")); Serial.print(CHANS[0]); Serial.print(','); Serial.println(CHANS[1]);
+}
 
 void radioInit(){
   pinMode(CE_PIN,OUTPUT);pinMode(CSN_PIN,OUTPUT);ceLow();csnHigh();
@@ -123,11 +135,15 @@ void sendOn(uint8_t ch){
 }
 
 void handleSerial(){
-  static long num=-1;
+  static long num=-1; static bool chMode=false;
   while(Serial.available()){
     char c=Serial.read();
-    if(c>='0'&&c<='9'){ if(num<0)num=0; num=num*10+(c-'0'); }
-    else if(c=='\n'||c=='\r'){ if(num>=0&&num<=255){payload=num;Serial.print(F("payload="));Serial.println(payload);} num=-1; }
+    if(c=='c'||c=='C'){ chMode=true; num=0; }            // "c<n>\n" sets channel 1-4
+    else if(c>='0'&&c<='9'){ if(num<0)num=0; num=num*10+(c-'0'); }
+    else if(c=='\n'||c=='\r'){
+      if(chMode){ setChannel(num); chMode=false; }
+      else if(num>=0&&num<=255){ payload=num; Serial.print(F("payload="));Serial.println(payload); }
+      num=-1; }
     else if(c=='+'){ payload++; Serial.print(F("payload="));Serial.println(payload); }
     else if(c=='-'){ payload--; Serial.print(F("payload="));Serial.println(payload); }
     else if(c=='s'){ payload=0; Serial.println(F("STOP (payload=0)")); }
@@ -141,8 +157,8 @@ uint8_t chIdx=0;
 void setup(){
   Serial.begin(115200);
   radioInit();
-  Serial.println(F("LEGO-RF TX ready. addr=55054434 ch=5,68 MINpower. Send a number (0-255)=payload."));
-  Serial.println(F("Try: 1,2,3.. (fwd?) then 9,10,..15 or 128.. (rev?). 's'=stop."));
+  setChannel(1);
+  Serial.println(F("LEGO-RF TX ready. Send number(0-255)=payload, 'c<1-4>'=channel, 's'=stop."));
 }
 void loop(){
   handleSerial();

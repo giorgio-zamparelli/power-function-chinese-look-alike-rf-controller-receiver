@@ -56,7 +56,8 @@ nibble is Output B, using the *same* scheme — so `A_command == B_command << 4`
 ```
 
 Perfect for a car: steering on one output, drive on the other — set each nibble, OR them, send one
-byte, both act simultaneously. Full capture/decode work is in [`docs/protocol-notes.md`](docs/protocol-notes.md).
+byte, both act simultaneously. Full capture/decode work is in [`docs/protocol-notes.md`](docs/protocol-notes.md);
+the **1–4 channel switch** (frequency + address per position) is documented in [`docs/channels.md`](docs/channels.md).
 
 ## Hardware
 
@@ -88,7 +89,7 @@ close range without it).
 - `arduino/channel_scanner/` — 2.4 GHz band scanner (RPD)
 - `arduino/mouldking_tx/` — early (wrong) Mould King hypothesis, kept for reference
 - `webapp/control_server.py` — web control panel + serial bridge
-- `docs/` — decoded protocol notes, capture data, and upstream reference code
+- `docs/` — [`protocol-notes.md`](docs/protocol-notes.md), [`channels.md`](docs/channels.md), capture data, and upstream reference code
 
 ## Credits & license
 
