@@ -92,12 +92,16 @@ uint8_t curChannel = 1;
 uint8_t payload = 0;
 bool txOn = true;
 
-// Channel switch 1-4: first RF = 3+2*n, second = first+63, address embeds both channel numbers.
+// Channel switch 1-4. The RF channels are NOT a simple progression (sniffed per position),
+// but the address always embeds the two RF channel numbers: addr = 55 [lowRF] [highRF] 34.
+// All 4 sniff-confirmed (RF channels are a fixed table per position, not a formula).
+const uint8_t CH_LO[4] = { 5,  7, 17, 12 };   // low  RF per channel
+const uint8_t CH_HI[4] = { 68, 70, 65, 75 };  // high RF per channel
 void setChannel(uint8_t n){
   if(n<1 || n>4) return;
-  uint8_t f = 3 + 2*n;          // 1->5, 2->7, 3->9, 4->11
-  ADDR[1]=f;  ADDR[2]=f+63;     // e.g. ch1: 0x05/0x44, ch2: 0x07/0x46
-  CHANS[0]=f; CHANS[1]=f+63;    // RF channels, e.g. 5&68, 7&70 ...
+  uint8_t lo=CH_LO[n-1], hi=CH_HI[n-1];
+  ADDR[1]=lo;  ADDR[2]=hi;     // address embeds the RF channel numbers
+  CHANS[0]=lo; CHANS[1]=hi;
   curChannel=n;
   Serial.print(F("channel=")); Serial.print(n);
   Serial.print(F(" rf=")); Serial.print(CHANS[0]); Serial.print(','); Serial.println(CHANS[1]);

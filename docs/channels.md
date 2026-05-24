@@ -31,29 +31,31 @@ At the chip level this is just two registers: `RF_CH` (frequency) and `TX_ADDR` 
 |:------:|:-----------:|:-----------:|:------------------|
 | **1** | 5, 68  | 2405 & 2468 MHz | `55 05 44 34` |
 | **2** | 7, 70  | 2407 & 2470 MHz | `55 07 46 34` |
-| **3** | 9, 72  | 2409 & 2472 MHz | `55 09 48 34` |
-| **4** | 11, 74 | 2411 & 2474 MHz | `55 0B 4A 34` |
+| **3** | 17, 65 | 2417 & 2465 MHz | `55 11 41 34` |
+| **4** | 12, 75 | 2412 & 2475 MHz | `55 0C 4B 34` |
 
-Channels **1 and 2 are sniff-confirmed**; **3 and 4 are derived** from the pattern below —
-switch the receiver to channel 3 or 4 (and match the web app) to verify.
+All four are **sniff-confirmed**.
 
-## The pattern (it's beautifully regular)
+## The pattern
 
-The **address literally embeds the two RF channel numbers**:
+The RF channels are **not** a simple arithmetic progression — they're **specific values per switch
+position** (a fixed lookup table, presumably chosen for frequency separation). But one neat rule
+holds on every channel: the **address literally embeds the two RF channel numbers**:
 
 ```
    address (logical):   55   [ low RF ]   [ high RF ]   34
                         └fixed┘  byte 1      byte 2     └fixed┘
 
-   per switch position N (1..4):
-       low RF  = 3 + 2*N          ->  5, 7, 9, 11
-       high RF = low RF + 63      ->  68, 70, 72, 74
-       address = 0x55, low RF, high RF, 0x34
+   e.g. channel 3: low RF = 17 = 0x11, high RF = 65 = 0x41  ->  55 11 41 34
+        channel 4: low RF = 12 = 0x0C, high RF = 75 = 0x4B  ->  55 0C 4B 34
 ```
 
-So each switch position simply bumps everything by **+2**. Only the frequency + address change —
-the **command encoding is identical on every channel** (see
-[`protocol-notes.md`](protocol-notes.md): direction + quadrature speed, both outputs in one byte).
+> An earlier hypothesis assumed a tidy `+2` progression (which fit channels 1→2); hardware testing
+> proved it wrong for 3 and 4, so the firmware uses the sniffed table above.
+
+Only the frequency + address change between channels — the **command encoding is identical on every
+channel** (see [`protocol-notes.md`](protocol-notes.md): direction + quadrature speed, both outputs
+in one byte).
 
 ## Using it
 
