@@ -1,0 +1,7 @@
+.DS_Store
+*.log
+__pycache__/
+*.pyc
+# arduino-cli build output
+build/
+*.hex
