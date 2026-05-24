@@ -166,6 +166,7 @@ CONTROL_HTML = ("""<!doctype html><html lang=en><head><meta charset=utf-8>
 <div class=sub>Output A + Output B, sent together (e.g. steering + drive)</div>
 <div id=conn class="conn no">&#9679; connecting&hellip;</div>
 <div class=chanrow><span>channel switch:</span><span id=chbtns></span></div>
+<div id=gp class=sub style="margin-top:-8px">&#127918; gamepad: detecting&hellip;</div>
 
 <div class=blk>
  <h2>Output A (high nibble)</h2>
@@ -193,15 +194,32 @@ CONTROL_HTML = ("""<!doctype html><html lang=en><head><meta charset=utf-8>
  function disp(){$('am').textContent=al>0?('CW \\u00B7 '+al):al<0?('CCW \\u00B7 '+(-al)):'stop';
    $('bm').textContent=bl>0?('CW \\u00B7 '+bl):bl<0?('CCW \\u00B7 '+(-bl)):'stop';}
  const get=u=>fetch(u).then(r=>r.text()).then(t=>{if(t&&t[0]==='@')$('byte').textContent=t.slice(1);}).catch(()=>{});
- $('acw').onclick=()=>{if(actx!==1){get('/set?ch=a&v=16');actx=1;}get('/seq?ch=a&v=80,144');al++;disp();};
- $('accw').onclick=()=>{if(actx!==2){get('/set?ch=a&v=32');actx=2;}get('/seq?ch=a&v=96,160');al--;disp();};
- $('astop').onclick=()=>{get('/set?ch=a&v=48');actx=0;al=0;disp();};
- $('bcw').onclick=()=>{if(bctx!==1){get('/set?ch=b&v=1');bctx=1;}get('/seq?ch=b&v=5,9');bl++;disp();};
- $('bccw').onclick=()=>{if(bctx!==2){get('/set?ch=b&v=2');bctx=2;}get('/seq?ch=b&v=6,10');bl--;disp();};
- $('bstop').onclick=()=>{get('/set?ch=b&v=3');bctx=0;bl=0;disp();};
- $('stopall').onclick=()=>{get('/stop');actx=bctx=0;al=bl=0;disp();};
+ function aCW(){if(actx!==1){get('/set?ch=a&v=16');actx=1;}get('/seq?ch=a&v=80,144');al++;disp();}
+ function aCCW(){if(actx!==2){get('/set?ch=a&v=32');actx=2;}get('/seq?ch=a&v=96,160');al--;disp();}
+ function aStop(){get('/set?ch=a&v=48');actx=0;al=0;disp();}
+ function bCW(){if(bctx!==1){get('/set?ch=b&v=1');bctx=1;}get('/seq?ch=b&v=5,9');bl++;disp();}
+ function bCCW(){if(bctx!==2){get('/set?ch=b&v=2');bctx=2;}get('/seq?ch=b&v=6,10');bl--;disp();}
+ function bStop(){get('/set?ch=b&v=3');bctx=0;bl=0;disp();}
+ function stopAll(){get('/stop');actx=bctx=0;al=bl=0;disp();}
+ $('acw').onclick=aCW;$('accw').onclick=aCCW;$('astop').onclick=aStop;
+ $('bcw').onclick=bCW;$('bccw').onclick=bCCW;$('bstop').onclick=bStop;$('stopall').onclick=stopAll;
  function setChan(n){get('/channel?n='+n);[...document.querySelectorAll('.ch')].forEach(b=>b.classList.toggle('on',+b.dataset.n===n));}
  (function(){const h=$('chbtns');for(let n=1;n<=4;n++){const b=document.createElement('button');b.className='ch'+(n===1?' on':'');b.dataset.n=n;b.textContent=n;b.onclick=()=>setChan(n);h.appendChild(b);}})();
+ // Xbox/gamepad: POLL navigator.getGamepads() (don't rely on the connect event)
+ const MAXN=7, DZ=0.20;
+ window.addEventListener('gamepadconnected',function(){});  // some browsers need a listener to expose pads
+ function activePad(){var ps=navigator.getGamepads?navigator.getGamepads():[];
+   for(var i=0;i<ps.length;i++){if(ps[i]&&ps[i].connected&&ps[i].axes&&ps[i].axes.length>=4)return ps[i];}return null;}
+ function tgt(v){return Math.abs(v)<DZ?0:Math.round(-v*MAXN);}
+ function gpTick(){var g=$('gp');var p=activePad();
+   if(!p){var ps=navigator.getGamepads?navigator.getGamepads():[];var n=0;for(var i=0;i<ps.length;i++)if(ps[i])n++;
+     if(g)g.textContent='\\uD83C\\uDFAE no gamepad ('+n+' detected) \\u2014 press a button on the controller';return;}
+   var ta=tgt(p.axes[1]||0),tb=tgt(p.axes[3]||0);
+   if(ta===0){if(al!==0||actx!==0)aStop();}else if(al<ta)aCW();else if(al>ta)aCCW();
+   if(tb===0){if(bl!==0||bctx!==0)bStop();}else if(bl<tb)bCW();else if(bl>tb)bCCW();
+   if(p.buttons[0]&&p.buttons[0].pressed)stopAll();
+   if(g)g.textContent='\\uD83C\\uDFAE '+(p.id||'pad').slice(0,16)+'  A '+al+'\\u2192'+ta+'  B '+bl+'\\u2192'+tb;}
+ setInterval(gpTick,180);
 __POLL__
 </script></body></html>""").replace("__STYLE__", STYLE).replace("__POLL__", POLL)
 

@@ -86,6 +86,11 @@ close range without it).
    ```
 3. Open **http://localhost:8080** — control panel; **/grid** — raw 0–255 payload explorer.
 
+**Gamepad control:** connect a controller to the computer (e.g. an Xbox pad over Bluetooth), open
+the control page, press a button. **Left stick → Output A, right stick → Output B** (up = forward,
+down = reverse, centre = brake), **A button = STOP**. The page reads it via the browser Gamepad API.
+> On macOS, use **Safari** — Chrome doesn't expose Xbox controllers over Bluetooth to the Gamepad API.
+
 ## Repo layout
 
 - `arduino/lego_tx/` — the working transmitter (XN297 emulation + decoded protocol)
