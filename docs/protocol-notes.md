@@ -8,21 +8,37 @@ Reverse-engineered 2026-05-23/24 by sniffing + live testing. This device is **NO
 **Packet:** `[4-byte addr][1-byte payload][2-byte CRC]`. CRC init `0xB5D2`, poly `0x1021`, scrambled
 (goebish `xn297_crc_xorout`, index = total_len-3). No bind/pairing — fixed address per channel switch.
 
-**Payload byte = LEGO "Combo Direct"-style command, low 2 bits:**
-| payload | bits | action |
+**Payload byte = BOTH outputs at once.** High nibble = Output A, low nibble = Output B, identical
+scheme (`A_command == B_command << 4`). Within each nibble: low 2 bits = direction, high 2 bits =
+the wheel's quadrature encoder (speed).
+
+```
+ bit:   7    6    5    4   |   3    2    1    0
+       spdA spdA dirA dirA | spdB spdB dirB dirB
+       \---- Output A ----/  \---- Output B ----/
+```
+
+Direction (low 2 bits of a nibble): `01` CW/forward · `10` CCW/reverse · `11` brake · `00` float.
+
+| action | Output B | Output A |
 |---|---|---|
-| `0x01` | `01` | clockwise / forward |
-| `0x02` | `10` | counter-clockwise / reverse |
-| `0x03` | `11` | brake / stop |
-| `0x00` | `00` | float (coast) |
+| forward / CW (start) | `0x01` | `0x10` |
+| reverse / CCW (start) | `0x02` | `0x20` |
+| brake / stop | `0x03` | `0x30` |
+| speed-up CW (phase seq) | `0x05 → 0x09` | `0x50 → 0x90` |
+| speed-up CCW (phase seq) | `0x06 → 0x0A` | `0x60 → 0xA0` |
 
-- **bit2 (`0x04`) set → command ignored.**
-- **bit3 (`0x08`) and bit7 (`0x80`)** = alternate channel/output bits; `1/2/3` drive the connected
-  output, but `9/10/11` and `129/130/131` produce the same cw/ccw/stop on it too.
-- No proportional speed in this mode — just forward / reverse / brake (full speed).
+**Speed is INCREMENTAL** (quadrature): a static value does nothing; the receiver counts wheel
+"notches", so you ramp speed by sending the phase transition repeatedly (e.g. B `5→9`, A `80→144`).
+That's why earlier `5`/`9` alone seemed to "do nothing" — only the *transition* steps the speed.
 
-To control: emulate the TX (XN297 on NRF24, see `arduino/lego_tx`), send `1`/`2`/`3` on ch 5 & 68
-to addr `55 05 44 34`. Reliable at close range without an extra decoupling cap.
+Combine outputs by OR-ing the nibbles: `0x11` = A fwd + B fwd, `0x21` = A rev + B fwd,
+`0x33` = brake both. (Confirmed by sniffing the right wheel = low-nibble values, the left wheel =
+high-nibble `0x10/0x20/0x30`.)
+
+To control: emulate the TX (XN297 on NRF24, see `arduino/lego_tx`) on ch 5 & 68 to addr
+`55 05 44 34`; `webapp/control_server.py` tracks both nibbles and sends the combined byte.
+Reliable at close range without an extra decoupling cap.
 
 ---
 

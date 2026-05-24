@@ -29,14 +29,34 @@ The clone uses a **scrambled XN297** link (the NRF24L01+ can emulate XN297 in so
 | CRC | 16-bit, poly `0x1021`, init `0xB5D2`, scrambled |
 | Bind/pairing | none — fixed address selected by the 1–4 channel switch |
 
-**Payload byte:**
-- **bits 0–1** = direction: `01` clockwise/forward · `10` counter-clockwise/reverse · `11` brake/stop · `00` float
-- **bits 2–3** = the wheel's **quadrature encoder** channels A/B. Speed is **incremental**: the
-  receiver counts wheel "notches", so you send a *phase sequence* to change speed:
-  - speed up CW: `1` then repeat `5 → 9`
-  - speed up CCW: `2` then repeat `6 → 10`
+**Payload byte — one byte drives BOTH outputs at once.** The high nibble is Output A, the low
+nibble is Output B, using the *same* scheme — so `A_command == B_command << 4` (i.e. ×16):
 
-Full details and the capture/decode work are in [`docs/protocol-notes.md`](docs/protocol-notes.md).
+```
+         +------+------+------+------+------+------+------+------+
+ bit     |  7   |  6   |  5   |  4   |  3   |  2   |  1   |  0   |
+         +------+------+------+------+------+------+------+------+
+ use     | spdA | spdA | dirA | dirA | spdB | spdB | dirB | dirB |
+         +------+------+------+------+------+------+------+------+
+           \________ OUTPUT A ________/  \________ OUTPUT B ________/
+            bits 4-7  (= Output B << 4)    bits 0-3
+
+  direction = low 2 bits of a nibble       speed = high 2 bits of a nibble
+    01 = CW  / forward                       = the wheel's quadrature encoder.
+    10 = CCW / reverse                       A static value does nothing — speed
+    11 = brake / stop                        steps only on a phase CHANGE, so you
+    00 = float (coast)                       send a sequence (repeat to ramp):
+                                               Output B faster:  0x05 -> 0x09
+                                               Output A faster:  0x50 -> 0x90
+
+  combine by OR-ing the two nibbles:
+    0x11 = 0001 0001  =  A forward + B forward     0x10 =  A forward only (B off)
+    0x21 = 0010 0001  =  A reverse + B forward     0x01 =  B forward only (A off)
+    0x12 = 0001 0010  =  A forward + B reverse     0x33 =  brake BOTH
+```
+
+Perfect for a car: steering on one output, drive on the other — set each nibble, OR them, send one
+byte, both act simultaneously. Full capture/decode work is in [`docs/protocol-notes.md`](docs/protocol-notes.md).
 
 ## Hardware
 
