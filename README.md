@@ -65,6 +65,8 @@ the **1–4 channel switch** (frequency + address per position) is documented in
 - **NRF24L01+PA+LNA** module on its AMS1117 adapter base (feed the adapter **5 V**)
 - the clone controller + receiver + a PF motor
 
+Exact products, photos and specs are in **[`docs/hardware.md`](docs/hardware.md)**.
+
 Wiring (adapter → Uno): `VCC→5V, GND→GND, CE→D9, CSN→D10, SCK→D13, MOSI→D11, MISO→D12` (IRQ unused).
 For long range / robustness, add a 10–100 µF decoupling cap across the module's VCC/GND (works at
 close range without it).
@@ -89,7 +91,7 @@ close range without it).
 - `arduino/channel_scanner/` — 2.4 GHz band scanner (RPD)
 - `arduino/mouldking_tx/` — early (wrong) Mould King hypothesis, kept for reference
 - `webapp/control_server.py` — web control panel + serial bridge
-- `docs/` — [`protocol-notes.md`](docs/protocol-notes.md), [`channels.md`](docs/channels.md), capture data, and upstream reference code
+- `docs/` — [`hardware.md`](docs/hardware.md), [`protocol-notes.md`](docs/protocol-notes.md), [`channels.md`](docs/channels.md), capture data, and upstream reference code
 
 ## Credits & license
 
